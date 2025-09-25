@@ -80,7 +80,7 @@ The plugin automatically handles multi-server environments. When a player claims
 ## Building
 
 ```bash
-./gradlew clean shadowJar
+./gradlew clean jar
 ```
 
 The compiled JAR will be in `build/libs/`.
