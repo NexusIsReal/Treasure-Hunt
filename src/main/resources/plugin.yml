@@ -1,0 +1,20 @@
+name: TreasureHunt
+version: 1.0.0
+main: com.treasurehunt.TreasureHuntPlugin
+api-version: 1.21
+author: TreasureHunt
+description: A plugin to manage custom treasure across the world
+
+commands:
+  treasure:
+    description: Main treasure command
+    usage: /treasure <create|delete|completed|list> [args]
+    permission: treasurehunt.admin
+
+permissions:
+  treasurehunt.admin:
+    description: Allows access to all treasure commands
+    default: op
+  treasurehunt.use:
+    description: Allows players to find treasures
+    default: true

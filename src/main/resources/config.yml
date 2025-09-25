@@ -1,0 +1,25 @@
+database:
+  host: localhost
+  port: 3306
+  database: treasurehunt
+  username: root
+  password: password
+  ssl: false
+  connection-timeout: 30000
+  maximum-pool-size: 10
+  minimum-idle: 5
+
+messages:
+  treasure-created: "&a&l✓ &aTreasure &e&l%id% &ahas been created successfully!"
+  treasure-deleted: "&c&l✗ &cTreasure &e&l%id% &chas been deleted from the database."
+  treasure-not-found: "&c&l! &cCouldn't find treasure &e&l%id% &cin the database."
+  treasure-already-found: "&e&l! &eYou've already found this treasure before!"
+  treasure-found: "&a&l★ &aYou discovered a treasure! &e&l%id%"
+  treasure-claimed: "&a&l★ &aTreasure claimed! The reward command has been executed."
+  no-treasures: "&e&l! &eThere are no treasures in the database yet."
+  invalid-command: "&c&l! &cInvalid command syntax. Type &e/treasure help &cfor assistance."
+  no-permission: "&c&l! &cYou don't have permission to use this command."
+  block-selection: "&a&l→ &aClick on any block to set it as treasure &e&l%id%"
+  block-selected: "&a&l✓ &aBlock selected! Treasure &e&l%id% &ais now active and ready to be found."
+  treasure-creation-failed: "&c&l✗ &cFailed to create treasure in the database. Check your connection."
+  treasure-unbreakable: "&c&l! &cYou cannot break treasure blocks!"
