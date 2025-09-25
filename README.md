@@ -29,7 +29,7 @@ A Minecraft Paper plugin that allows administrators to create custom treasures a
 
 1. Build the plugin using Gradle:
    ```bash
-   ./gradlew shadowJar
+   gradle build jar
    ```
 
 2. Place the generated JAR file in your server's `plugins` folder
