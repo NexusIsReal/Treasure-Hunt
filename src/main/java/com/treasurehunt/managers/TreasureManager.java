@@ -28,6 +28,32 @@ public class TreasureManager {
     }
 
     public void startTreasureCreation(Player player, String treasureId, String rewardCommand) {
+        if (!databaseManager.isConnected()) {
+            String dbErrorMsg = plugin.getConfig().getString("messages.database-error", "&c&l! &cDatabase connection is not available. Please contact an administrator.");
+            player.sendMessage(ChatColor.translateAlternateColorCodes('&', dbErrorMsg));
+            return;
+        }
+
+        if (!isValidTreasureId(treasureId)) {
+            String invalidIdMsg = plugin.getConfig().getString("messages.invalid-treasure-id", "&c&l! &cInvalid treasure ID! Only letters, numbers, and underscores are allowed.");
+            player.sendMessage(ChatColor.translateAlternateColorCodes('&', invalidIdMsg));
+            return;
+        }
+
+        if (!isValidCommand(rewardCommand)) {
+            String invalidCmdMsg = plugin.getConfig().getString("messages.invalid-command", "&c&l! &cInvalid reward command! Only safe commands are allowed.");
+            player.sendMessage(ChatColor.translateAlternateColorCodes('&', invalidCmdMsg));
+            return;
+        }
+
+        synchronized (treasures) {
+            if (treasures.containsKey(treasureId)) {
+                String duplicateMsg = plugin.getConfig().getString("messages.treasure-duplicate", "&c&l! &cTreasure &e&l%id% &calready exists! Choose a different ID.");
+                player.sendMessage(ChatColor.translateAlternateColorCodes('&', duplicateMsg.replace("%id%", treasureId)));
+                return;
+            }
+        }
+
         pendingCreations.put(player.getUniqueId(), treasureId + ":" + rewardCommand);
         String selectionMsg = plugin.getConfig().getString("messages.block-selection", "&a&l→ &aClick on any block to set it as treasure &e&l%id%");
         player.sendMessage(ChatColor.translateAlternateColorCodes('&', selectionMsg.replace("%id%", treasureId)));
@@ -46,7 +72,9 @@ public class TreasureManager {
         pendingCreations.remove(playerUuid);
 
         Treasure newTreasure = new Treasure(treasureId, location, rewardCommand);
-        treasures.put(treasureId, newTreasure);
+        synchronized (treasures) {
+            treasures.put(treasureId, newTreasure);
+        }
 
         databaseManager.createTreasure(treasureId, location.getWorld().getName(), 
             location.getBlockX(), location.getBlockY(), location.getBlockZ(), rewardCommand)
@@ -64,7 +92,9 @@ public class TreasureManager {
     }
 
     public CompletableFuture<Boolean> deleteTreasure(String treasureId) {
-        treasures.remove(treasureId);
+        synchronized (treasures) {
+            treasures.remove(treasureId);
+        }
         return databaseManager.deleteTreasure(treasureId);
     }
 
@@ -81,6 +111,10 @@ public class TreasureManager {
         return hasPlayerFoundTreasure(treasure.getId(), player.getUniqueId())
             .thenCompose(alreadyFound -> {
                 if (alreadyFound) {
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        String alreadyFoundMsg = plugin.getConfig().getString("messages.treasure-already-found", "&e&l! &eYou've already found this treasure before!");
+                        player.sendMessage(ChatColor.translateAlternateColorCodes('&', alreadyFoundMsg));
+                    });
                     return CompletableFuture.completedFuture(false);
                 }
 
@@ -89,7 +123,7 @@ public class TreasureManager {
                         if (markedSuccessfully) {
                             return databaseManager.getTreasureCommand(treasure.getId())
                                 .thenApply(rewardCommand -> {
-                                    if (rewardCommand != null) {
+                                    if (rewardCommand != null && isValidCommand(rewardCommand)) {
                                         String finalCommand = rewardCommand.replace("%player%", player.getName());
                                         Bukkit.getScheduler().runTask(plugin, () -> {
                                             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
@@ -105,9 +139,11 @@ public class TreasureManager {
     }
 
     private Treasure findTreasureAtLocation(Location location) {
-        for (Treasure treasure : treasures.values()) {
-            if (treasure.isAtLocation(location)) {
-                return treasure;
+        synchronized (treasures) {
+            for (Treasure treasure : treasures.values()) {
+                if (treasure.isAtLocation(location)) {
+                    return treasure;
+                }
             }
         }
         return null;
@@ -137,16 +173,66 @@ public class TreasureManager {
         return plugin;
     }
 
+    public void cleanup() {
+        pendingCreations.clear();
+        synchronized (treasures) {
+            treasures.clear();
+        }
+    }
+
+    private boolean isValidTreasureId(String treasureId) {
+        if (treasureId == null || treasureId.trim().isEmpty()) {
+            return false;
+        }
+        
+        if (treasureId.length() > 50) {
+            return false;
+        }
+        
+        return treasureId.matches("^[a-zA-Z0-9_]+$");
+    }
+
+    private boolean isValidCommand(String command) {
+        if (command == null || command.trim().isEmpty()) {
+            return false;
+        }
+        
+        if (command.length() > 500) {
+            return false;
+        }
+        
+        String[] allowedCommands = {
+            "say", "tell", "give", "tp", "teleport", "effect", "gamemode", 
+            "weather", "time", "title", "subtitle", "actionbar", "sound",
+            "playsound", "particle", "enchant", "heal", "feed", "fly"
+        };
+        
+        String firstWord = command.trim().split("\\s+")[0].toLowerCase();
+        
+        for (String allowed : allowedCommands) {
+            if (firstWord.equals(allowed)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     private void loadTreasuresFromDatabase() {
         databaseManager.loadAllTreasures().thenAccept(loadedTreasures -> {
             Bukkit.getScheduler().runTask(plugin, () -> {
-                treasures.putAll(loadedTreasures);
+                synchronized (treasures) {
+                    treasures.putAll(loadedTreasures);
+                }
                 if (loadedTreasures.size() > 0) {
                     plugin.getLogger().info("Successfully loaded " + loadedTreasures.size() + " treasures from the database");
                 } else {
                     plugin.getLogger().info("No treasures found in the database");
                 }
             });
+        }).exceptionally(throwable -> {
+            plugin.getLogger().severe("Failed to load treasures from database: " + throwable.getMessage());
+            return null;
         });
     }
 }

@@ -23,3 +23,7 @@ messages:
   block-selected: "&a&l✓ &aBlock selected! Treasure &e&l%id% &ais now active and ready to be found."
   treasure-creation-failed: "&c&l✗ &cFailed to create treasure in the database. Check your connection."
   treasure-unbreakable: "&c&l! &cYou cannot break treasure blocks!"
+  treasure-duplicate: "&c&l! &cTreasure &e&l%id% &calready exists! Choose a different ID."
+  database-error: "&c&l! &cDatabase connection is not available. Please contact an administrator."
+  invalid-treasure-id: "&c&l! &cInvalid treasure ID! Only letters, numbers, and underscores are allowed."
+  invalid-command: "&c&l! &cInvalid reward command! Only safe commands are allowed."

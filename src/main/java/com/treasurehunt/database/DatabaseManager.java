@@ -22,35 +22,60 @@ import java.util.concurrent.CompletableFuture;
 public class DatabaseManager {
     private HikariDataSource dataSource;
     private final FileConfiguration config;
+    private volatile boolean isConnected = false;
 
     public DatabaseManager(FileConfiguration config) {
         this.config = config;
     }
 
     public void initialize() {
-        HikariConfig hikariConfig = new HikariConfig();
-        
-        String dbHost = config.getString("database.host", "localhost");
-        int dbPort = config.getInt("database.port", 3306);
-        String dbName = config.getString("database.database", "treasurehunt");
-        String dbUser = config.getString("database.username", "root");
-        String dbPass = config.getString("database.password", "password");
-        boolean useSSL = config.getBoolean("database.ssl", false);
-        
-        String connectionUrl = String.format("jdbc:mysql://%s:%d/%s?useSSL=%s&serverTimezone=UTC", 
-            dbHost, dbPort, dbName, useSSL);
-        
-        hikariConfig.setJdbcUrl(connectionUrl);
-        hikariConfig.setUsername(dbUser);
-        hikariConfig.setPassword(dbPass);
-        hikariConfig.setMaximumPoolSize(config.getInt("database.maximum-pool-size", 10));
-        hikariConfig.setMinimumIdle(config.getInt("database.minimum-idle", 5));
-        hikariConfig.setConnectionTimeout(config.getLong("database.connection-timeout", 30000));
-        hikariConfig.setLeakDetectionThreshold(60000);
-        
-        dataSource = new HikariDataSource(hikariConfig);
-        
-        createTables();
+        try {
+            HikariConfig hikariConfig = new HikariConfig();
+            
+            String dbHost = config.getString("database.host", "localhost");
+            int dbPort = config.getInt("database.port", 3306);
+            String dbName = config.getString("database.database", "treasurehunt");
+            String dbUser = config.getString("database.username", "root");
+            String dbPass = config.getString("database.password", "password");
+            boolean useSSL = config.getBoolean("database.ssl", false);
+            
+            String connectionUrl = String.format("jdbc:mysql://%s:%d/%s?useSSL=%s&serverTimezone=UTC", 
+                dbHost, dbPort, dbName, useSSL);
+            
+            hikariConfig.setJdbcUrl(connectionUrl);
+            hikariConfig.setUsername(dbUser);
+            hikariConfig.setPassword(dbPass);
+            hikariConfig.setMaximumPoolSize(config.getInt("database.maximum-pool-size", 10));
+            hikariConfig.setMinimumIdle(config.getInt("database.minimum-idle", 5));
+            hikariConfig.setConnectionTimeout(config.getLong("database.connection-timeout", 30000));
+            hikariConfig.setLeakDetectionThreshold(30000);
+            hikariConfig.setIdleTimeout(600000);
+            hikariConfig.setMaxLifetime(1800000);
+            hikariConfig.setValidationTimeout(5000);
+            
+            dataSource = new HikariDataSource(hikariConfig);
+            
+            testConnection();
+            createTables();
+            
+            isConnected = true;
+            Bukkit.getLogger().info("Database connection established successfully");
+        } catch (Exception e) {
+            Bukkit.getLogger().severe("Failed to initialize database connection: " + e.getMessage());
+            throw new RuntimeException("Database initialization failed", e);
+        }
+    }
+
+    private void testConnection() {
+        try (Connection connection = dataSource.getConnection()) {
+            if (connection.isValid(5)) {
+                Bukkit.getLogger().info("Database connection test successful");
+            } else {
+                throw new SQLException("Database connection is not valid");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Database connection test failed", e);
+        }
     }
 
     private void createTables() {
@@ -258,9 +283,15 @@ public class DatabaseManager {
         });
     }
 
+    public boolean isConnected() {
+        return isConnected && dataSource != null && !dataSource.isClosed();
+    }
+
     public void close() {
+        isConnected = false;
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();
+            Bukkit.getLogger().info("Database connection closed");
         }
     }
 }

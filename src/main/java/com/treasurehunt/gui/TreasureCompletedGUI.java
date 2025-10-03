@@ -29,7 +29,6 @@ public class TreasureCompletedGUI implements Listener {
         this.treasureManager = treasureManager;
         this.inventory = Bukkit.createInventory(null, 54, ChatColor.DARK_GREEN + "Treasure Completion Tracker");
         
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
         loadAllTreasures();
     }
 
@@ -39,7 +38,6 @@ public class TreasureCompletedGUI implements Listener {
         this.selectedTreasureId = treasureId;
         this.inventory = Bukkit.createInventory(null, 54, ChatColor.DARK_GREEN + "Treasure: " + treasureId);
         
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
         loadCompletedPlayers();
     }
 

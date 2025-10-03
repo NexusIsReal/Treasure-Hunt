@@ -30,7 +30,6 @@ public class ConfirmationGUI implements Listener {
         this.treasureName = treasureName;
         this.inventory = Bukkit.createInventory(null, 27, ChatColor.DARK_RED + "Confirm Deletion");
         
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
         setupGUI();
     }
 

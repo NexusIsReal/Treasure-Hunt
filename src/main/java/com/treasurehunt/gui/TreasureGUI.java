@@ -26,7 +26,6 @@ public class TreasureGUI implements Listener {
         this.treasureManager = treasureManager;
         this.inventory = Bukkit.createInventory(null, 54, ChatColor.DARK_GREEN + "Treasure Management");
         
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
         loadTreasures();
     }
 
